@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -43,14 +44,18 @@ func New(cfg Config) (*Engine, error) {
 	shared = append(shared, partials...)
 	shared = append(shared, components...)
 
-	pages, _ := filepath.Glob(filepath.Join(cfg.Dir, "pages", "*.html"))
-	adminPages, _ := filepath.Glob(filepath.Join(cfg.Dir, "pages", "admin", "*.html"))
-	errorPages, _ := filepath.Glob(filepath.Join(cfg.Dir, "pages", "errors", "*.html"))
-
-	allPages := make([]string, 0, len(pages)+len(adminPages)+len(errorPages))
-	allPages = append(allPages, pages...)
-	allPages = append(allPages, adminPages...)
-	allPages = append(allPages, errorPages...)
+	// Recursively find all page templates under pages/
+	var allPages []string
+	pagesRoot := filepath.Join(cfg.Dir, "pages")
+	_ = filepath.Walk(pagesRoot, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if !info.IsDir() && strings.HasSuffix(path, ".html") {
+			allPages = append(allPages, path)
+		}
+		return nil
+	})
 
 	pagesDir := filepath.Join(cfg.Dir, "pages") + "/"
 
